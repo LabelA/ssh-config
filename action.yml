@@ -61,5 +61,5 @@ runs:
     - name: Debug SSH connection
       run: |
        ssh -T -vvv git@github.com
-       shell: bash
+      shell: bash
 
