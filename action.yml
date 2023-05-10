@@ -15,51 +15,28 @@ runs:
       env:
         PRIVATE_KEY: ${{ inputs.ssh-private-key }}
       run: |
-        echo "$PRIVATE_KEY" > private_key
-        chmod 600 private_key
-        ssh-agent sh -c 'ssh-add private_key;'
-        rm -f private_key
+        mkdir -p ~/.ssh
+        echo "$PRIVATE_KEY" > ~/.ssh/id_ed25519
+        chmod 600 ~/.ssh/id_ed25519
+        eval "$(ssh-agent -s)"
+        ssh-add ~/.ssh/id_ed25519
       shell: bash
 
     - name: Add GitHub to known hosts
       run: |
-        mkdir -p ~/.ssh
         ssh-keyscan -H github.com >> ~/.ssh/known_hosts
         chmod 600 ~/.ssh/known_hosts
       shell: bash
 
-    - name: Check if SSH config file exists
-      run: |
-        if [ ! -f ~/.ssh/config ]; then
-          touch ~/.ssh/config
-        fi
-      shell: bash
-
     - name: Modify SSH config file
       run: |
-        echo "Host *" >> ~/.ssh/config
+        echo "Host *" > ~/.ssh/config
         echo "  AddKeysToAgent yes" >> ~/.ssh/config
         echo "  IdentityFile ~/.ssh/id_ed25519" >> ~/.ssh/config
-        if [ -f ~/.ssh/id_ed25519.pub ]; then
-          echo "  IdentityFile ~/.ssh/id_ed25519.pub" >> ~/.ssh/config
-        fi
         echo "  IgnoreUnknown UseKeychain" >> ~/.ssh/config
       shell: bash
 
-    - name: Configure SSH agent and Git
-      env:
-        PRIVATE_KEY: ${{ inputs.ssh-private-key }}
+    - name: Configure Git to use SSH
       run: |
-        echo "$PRIVATE_KEY" > private_key
-        chmod 600 private_key
-        eval "$(ssh-agent -s)"
-        ssh-add private_key
-        rm -f private_key
         git config --global url."git@github.com:".insteadOf "https://github.com/"
       shell: bash
-      
-    - name: Debug SSH connection
-      run: |
-       ssh -T -vvv git@github.com
-      shell: bash
-
